@@ -15,7 +15,7 @@ app = Flask(__name__)
 
 def find_data():
     # Init headless ChromeDriver
-    chrome_path = r'adam@crdhost/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/gameschromedriver.exe'
+    chrome_path = r'/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/gameschromedriver.exe'
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     driver = webdriver.Chrome(executable_path = chrome_path, chrome_options=chrome_options)
