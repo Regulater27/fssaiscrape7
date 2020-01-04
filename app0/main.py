@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from pyvirtualdisplay import Display
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import Select
@@ -14,11 +15,13 @@ app = Flask(__name__)
 @app.route('/Scrape0', methods=['POST'])
 
 def find_data():
+    display = Display(visible=0, size=(1920, 1080))
+    display.start()
     # Init headless ChromeDriver
-    chrome_path = r'/home/adam/chromedriver.exe'
+    #chrome_path = r'/home/adam/chromedriver.exe'
     chrome_options = Options()
     chrome_options.add_argument("--headless")
-    driver = webdriver.Chrome(executable_path = chrome_path, chrome_options=chrome_options)
+    driver = webdriver.Chrome(chrome_options=chrome_options)
     driver.set_window_size(1920, 1080)
     url = 'https://foodlicensing.fssai.gov.in/index.aspx'
     
