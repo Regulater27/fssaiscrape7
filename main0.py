@@ -126,18 +126,15 @@ def find_data():
     rows = driver.find_element_by_xpath('//*[@id="ctl00_content_gvDetails"]/tbody').find_elements_by_tag_name('tr')
     row_number = 1
     for row in rows:
-        cells = row.find_element_by_xpath('//*[@id="ctl00_content_gvDetails"]/tbody/tr['+str(row_number)+']').text
-        name = cells.split(", ")[0]
-        name = name[2:]
-        registration = 0
-        regis = [int(s) for s in cells.split() if s.isdigit()]
-        registr =  [word for word in regis if len(str(word)) == 14]
-        if len(registr) == 1:
-            registration = registr[0]
-        row_number += 1
-        info.append([name, instate , registration])
-        
-    info = info[1:]
+        try:
+            row_number += 1
+            name = driver.find_element_by_xpath('//*[@id="ctl00_content_gvDetails_ctl0'+str(row_number)+'_lblCompany"]').text
+            address = driver.find_element_by_xpath('//*[@id="ctl00_content_gvDetails_ctl0'+str(row_number)+'_lblAdd"]').text
+            registration = driver.find_element_by_xpath('//*[@id="ctl00_content_gvDetails_ctl0'+str(row_number)+'_lblLic"]').text
+            info.append([name, address, registration])
+        except NoSuchElementException:
+            print('This is the first row!')
+    
     
     return jsonify(info)
 
