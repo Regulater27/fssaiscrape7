@@ -8,6 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import ElementClickInterceptedException
 
 # Init app
 app = Flask(__name__)
@@ -60,14 +61,28 @@ def find_data():
     if inbizname != '':
         try:
             select2 = driver.find_element_by_xpath('//*[@id="ctl00_content_txtName"]')
-            select2.click()
-            select2.send_keys(inbizname)
-            select2.submit()
+            try:
+                select2.click()
+                select2.send_keys(inbizname)
+                select2.submit()
+            except ElementClickInterceptedException:
+                print('ElementClickInterceptedException in bizname!')
+                select2 = driver.find_element_by_xpath('//*[@id="ctl00_content_txtName"]')
+                select2.click()
+                select2.send_keys(inbizname)
+                select2.submit()  
         except StaleElementReferenceException:
             select2 = driver.find_element_by_xpath('//*[@id="ctl00_content_txtName"]')
-            select2.click()
-            select2.send_keys(inbizname)
-            select2.submit()   
+            try:
+                select2.click()
+                select2.send_keys(inbizname)
+                select2.submit()   
+            except ElementClickInterceptedException:
+                print('ElementClickInterceptedException in bizname!')
+                select2 = driver.find_element_by_xpath('//*[@id="ctl00_content_txtName"]')
+                select2.click()
+                select2.send_keys(inbizname)
+                select2.submit() 
     # Enter License/Registration number
     if inregnum != '':
         try:
@@ -98,42 +113,67 @@ def find_data():
             select5.send_keys(inproddesc)
             select5.submit()
     # Click search
-    driver.find_element_by_xpath('//*[@id="ctl00_content_btnsearch"]').click()
+    try:
+        driver.find_element_by_xpath('//*[@id="ctl00_content_btnsearch"]').click()
+    except StaleElementReferenceException:
+        driver.find_element_by_xpath('//*[@id="ctl00_content_btnsearch"]').click()
     # Wait for new tab to load
     try:
         WebDriverWait(driver, 7).until(EC.presence_of_element_located((By.ID, 'ctl00_content_update')))
     except TimeoutException:
-        print('Results took too long to load!')
-
-    # Switch active tad to search results
-    window_before = driver.window_handles[0]
-    window_after = driver.window_handles[1]
-    driver.switch_to.window(window_after)
-    # Handle Pagination
-    try:
-        select6 = Select(driver.find_element_by_xpath('//*[@id="ctl00_content_ddlPage"]'))
-        print([o.text for o in select6.options])
-        select6.select_by_visible_text('300')
-        try:
-            WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'ctl00_content_update')))
-        except TimeoutException:
-            print('Results took too long to load!')
-    except NoSuchElementException:
-        print('No pagination!')
+        print('LOADING...')
     
-    # Scrape Data
     info = []
-    rows = driver.find_element_by_xpath('//*[@id="ctl00_content_gvDetails"]/tbody').find_elements_by_tag_name('tr')
-    row_number = 1
-    for row in rows:
+    # Switch active tad to search results
+    try:
+        window_before = driver.window_handles[0]
+        window_after = driver.window_handles[1]
+        driver.switch_to.window(window_after)
+    except IndexError:
+        print('ERROR: COULD NOT MAKE CONNECTION WITH DATABASE, PLEASE TRY AGAIN')
+        info = 'ERROR: COULD NOT MAKE CONNECTION WITH DATABASE, PLEASE TRY AGAIN'
+
+    if info != 'ERROR: COULD NOT MAKE CONNECTION WITH DATABASE, PLEASE TRY AGAIN':
+        # Handle Pagination
         try:
-            row_number += 1
-            name = driver.find_element_by_xpath('//*[@id="ctl00_content_gvDetails_ctl0'+str(row_number)+'_lblCompany"]').text
-            address = driver.find_element_by_xpath('//*[@id="ctl00_content_gvDetails_ctl0'+str(row_number)+'_lblAdd"]').text
-            registration = driver.find_element_by_xpath('//*[@id="ctl00_content_gvDetails_ctl0'+str(row_number)+'_lblLic"]').text
-            info.append([name, address, registration])
+            select6 = Select(driver.find_element_by_xpath('//*[@id="ctl00_content_ddlPage"]'))
+            print([o.text for o in select6.options])
+            select6.select_by_visible_text('300')
+            try:
+                WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'ctl00_content_update')))
+            except TimeoutException:
+                print('LOADING...')
         except NoSuchElementException:
-            print('This is the first row!')
+            print('No pagination!')
+        
+        # Set variables to scrape data
+        error = 'ERROR: COULD NOT MAKE CONNECTION WITH DATABASE, PLEASE TRY AGAIN'
+        row_number = 1
+        
+        # Test if page has sucessfully loaded
+        try:
+            rows = driver.find_element_by_xpath('//*[@id="ctl00_content_gvDetails"]/tbody').find_elements_by_tag_name('tr')
+        except NoSuchElementException:
+            print(error)
+            info.append(error)
+            
+        # Scrape!    
+        if info != 'ERROR: COULD NOT MAKE CONNECTION WITH DATABASE, PLEASE TRY AGAIN':
+            for row in rows:
+                row_number += 1
+                try:
+                    if row_number <= 9:
+                        name = driver.find_element_by_xpath('//*[@id="ctl00_content_gvDetails_ctl0'+str(row_number)+'_lblCompany"]').text
+                        address = driver.find_element_by_xpath('//*[@id="ctl00_content_gvDetails_ctl0'+str(row_number)+'_lblAdd"]').text
+                        registration = driver.find_element_by_xpath('//*[@id="ctl00_content_gvDetails_ctl0'+str(row_number)+'_lblLic"]').text
+                        info.append([name, address, registration])
+                    else:
+                        name = driver.find_element_by_xpath('//*[@id="ctl00_content_gvDetails_ctl'+str(row_number)+'_lblCompany"]').text
+                        address = driver.find_element_by_xpath('//*[@id="ctl00_content_gvDetails_ctl'+str(row_number)+'_lblAdd"]').text
+                        registration = driver.find_element_by_xpath('//*[@id="ctl00_content_gvDetails_ctl'+str(row_number)+'_lblLic"]').text
+                        info.append([name, address, registration])
+                except NoSuchElementException:
+                    print('There are '+str(len(rows)-1)+' companies meeting this criteria')
     
     
     return jsonify(info)
